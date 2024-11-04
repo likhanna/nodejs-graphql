@@ -10,7 +10,8 @@ import { MemberType, MemberTypeIdEnum } from './member-types.js';
 import { Context, idField } from './common.js';
 import { Static } from '@sinclair/typebox';
 import { profileSchema } from '../../profiles/schemas.js';
-import { UserType } from './users.js';
+
+export type Profile = Static<typeof profileSchema>;
 
 const profileFields = {
   isMale: { type: new GraphQLNonNull(GraphQLBoolean) },
@@ -30,24 +31,10 @@ export const ProfileType: GraphQLObjectType = new GraphQLObjectType({
   fields: () => ({
     ...idField,
     ...profileFields,
-    user: {
-      type: UserType,
-      resolve: async (
-        { userId }: Static<typeof profileSchema>,
-        _: unknown,
-        { db }: Context,
-      ) => {
-        return await db.user.findUnique({ where: { id: userId } });
-      },
-    },
     memberType: {
       type: MemberType,
-      resolve: async (
-        { memberTypeId }: Static<typeof profileSchema>,
-        _: unknown,
-        { db }: Context,
-      ) => {
-        return await db.memberType.findUnique({ where: { id: memberTypeId } });
+      resolve: async ({ memberTypeId }: Profile, _: unknown, { loaders }: Context) => {
+        return loaders.memberTypesLoader.load(memberTypeId);
       },
     },
   }),
